@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineBuilds - Minecraft Build Job Hunt & AI Matcher</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mine: {
+                            dark: '#121214',
+                            card: '#1a1a1e',
+                            border: '#2a2a32',
+                            green: '#10b981',
+                            greenHover: '#059669',
+                            accent: '#3b82f6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #121214; color: #f3f4f6; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- NAVBAR -->
+    <header class="border-b border-mine-border bg-mine-dark/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('jobs')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-cube text-white text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-extrabold tracking-wide text-white">Mine<span class="text-emerald-400">Builds</span></span>
+                    <span class="block text-xs text-slate-400">Job Hunt & AI Matcher</span>
+                </div>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-1">
+                <button onclick="switchTab('jobs')" id="nav-jobs" class="px-4 py-2 rounded-lg text-sm font-semibold transition text-emerald-400 bg-emerald-500/10">Lowongan</button>
+                <button onclick="switchTab('ai')" id="nav-ai" class="px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-white/5">AI Matcher</button>
+                <button onclick="switchTab('post')" id="nav-post" class="px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-white/5 hidden client-only">Pasang Lowongan</button>
+            </nav>
+
+            <div class="flex items-center space-x-3" id="auth-container-nav">
+                <!-- Status Auth Dinamis -->
+                <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition">Masuk</button>
+                <button onclick="openAuthModal('register')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition">Daftar</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- TAB 1: LOWONGAN PEKERJAAN -->
+        <section id="tab-jobs" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-mine-card border border-mine-border p-6 rounded-2xl shadow-xl">
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Papan Lowongan Builder</h1>
+                    <p class="text-sm text-slate-400 mt-1">Temukan proyek server Minecraft atau pasang lowongan untuk server Anda.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative flex-grow md:w-64">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="search-input" oninput="filterJobs()" placeholder="Cari judul atau server..." class="w-full pl-10 pr-4 py-2.5 bg-mine-dark border border-mine-border rounded-xl text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                    </div>
+                    <select id="filter-style" onchange="filterJobs()" class="bg-mine-dark border border-mine-border text-slate-300 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500 transition">
+                        <option value="">Semua Gaya</option>
+                        <option value="Medieval">Medieval</option>
+                        <option value="Modern">Modern</option>
+                        <option value="Fantasy">Fantasy</option>
+                        <option value="Cyberpunk">Cyberpunk</option>
+                        <option value="Terraforming">Terraforming</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Daftar Lowongan -->
+            <div id="job-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Lowongan akan dimuat secara dinamis via JS -->
+                <div class="col-span-full text-center py-12 text-slate-400">
+                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Memuat lowongan dari database...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: AI MATCHING REVIEWS -->
+        <section id="tab-ai" class="space-y-6 hidden">
+            <div class="max-w-3xl mx-auto bg-mine-card border border-mine-border p-8 rounded-2xl shadow-xl">
+                <div class="text-center space-y-2 mb-8">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto text-xl">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white">AI Job Matcher</h1>
+                    <p class="text-sm text-slate-400">Isi profil keahlian Anda, biarkan AI mencocokkan lowongan paling sesuai dengan gaya builder Anda.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Gaya Bangunan Utama Anda</label>
+                        <select id="ai-style" class="w-full bg-mine-dark border border-mine-border text-slate-300 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500">
+                            <option value="Medieval">Medieval & Castles</option>
+                            <option value="Modern">Modern & City</option>
+                            <option value="Fantasy">Fantasy & Organic</option>
+                            <option value="Cyberpunk">Cyberpunk & Sci-Fi</option>
+                            <option value="Terraforming">Terraforming & Nature</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Tingkat Keahlian</label>
+                        <select id="ai-level" class="w-full bg-mine-dark border border-mine-border text-slate-300 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500">
+                            <option value="Junior">Junior Builder (1-2 Tahun)</option>
+                            <option value="Intermediate">Intermediate (3-4 Tahun)</option>
+                            <option value="Pro">Professional / Lead Builder (5+ Tahun)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Preferensi Bayaran</label>
+                        <select id="ai-budget" class="w-full bg-mine-dark border border-mine-border text-slate-300 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500">
+                            <option value="Paid">Uang Tunai / Paid ($ / IDR)</option>
+                            <option value="Rank">Server Rank / Kompensasi Game</option>
+                            <option value="Any">Bebas / Apa Saja</option>
+                        </select>
+                    </div>
+                    <button onclick="runAIMatcher()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold shadow-lg shadow-blue-500/20 hover:opacity-90 transition">
+                        Analisis & Cari Rekomendasi AI
+                    </button>
+                </div>
+
+                <!-- Hasil AI -->
+                <div id="ai-result-container" class="mt-8 hidden space-y-4">
+                    <h3 class="text-lg font-bold text-white border-b border-mine-border pb-2">Hasil Rekomendasi AI</h3>
+                    <div id="ai-result-content" class="space-y-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: PASANG LOWONGAN (KHUSUS CLIENT) -->
+        <section id="tab-post" class="space-y-6 hidden">
+            <div class="max-w-2xl mx-auto bg-mine-card border border-mine-border p-8 rounded-2xl shadow-xl">
+                <h1 class="text-2xl font-bold text-white mb-2">Pasang Lowongan Baru</h1>
+                <p class="text-sm text-slate-400 mb-6">Buat proyek baru dan rekrut builder profesional.</p>
+                
+                <form id="post-job-form" onsubmit="handlePostJob(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Judul Proyek</label>
+                        <input type="text" id="job-title" required placeholder="Cth: Spawn Medieval Server Survival" class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Jenis Server</label>
+                            <input type="text" id="job-server" required placeholder="Cth: Survival / RPG" class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-1">Gaya Bangunan</label>
+                            <select id="job-style" class="w-full bg-mine-dark border border-mine-border text-slate-300 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500">
+                                <option value="Medieval">Medieval</option>
+                                <option value="Modern">Modern</option>
+                                <option value="Fantasy">Fantasy</option>
+                                <option value="Cyberpunk">Cyberpunk</option>
+                                <option value="Terraforming">Terraforming</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Estimasi Bayaran / Kompensasi</label>
+                        <input type="text" id="job-budget" required placeholder="Cth: $150 atau Rank VIP" class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Deskripsi & Detail Pekerjaan</label>
+                        <textarea id="job-desc" rows="4" required placeholder="Jelaskan ukuran area, tema spesifik, dan deadline..." class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/20 transition">
+                        Publikasikan Lowongan
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL AUTH (LOGIN / REGISTER) -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-mine-card border border-mine-border w-full max-w-md p-8 rounded-2xl shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 id="auth-modal-title" class="text-xl font-bold text-white mb-6">Masuk ke Akun</h2>
+            
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="register-fields" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Username</label>
+                        <input type="text" id="auth-username" placeholder="Nama Builder / Server" class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Peran (Role)</label>
+                        <select id="auth-role" class="w-full bg-mine-dark border border-mine-border text-slate-300 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500">
+                            <option value="builder">Builder (Pencari Kerja)</option>
+                            <option value="client">Client / Server Owner (Pemberi Kerja)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                    <input type="email" id="auth-email" required placeholder="nama@domain.com" class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition shadow-lg shadow-emerald-500/20">Masuk</button>
+            </form>
+            <div class="mt-4 text-center text-sm text-slate-400">
+                <span id="auth-switch-text">Belum punya akun?</span> 
+                <button onclick="toggleAuthMode()" id="auth-switch-btn" class="text-emerald-400 font-semibold hover:underline ml-1">Daftar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL APPLY JOB -->
+    <div id="apply-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-mine-card border border-mine-border w-full max-w-md p-8 rounded-2xl shadow-2xl relative">
+            <button onclick="closeApplyModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h2 class="text-xl font-bold text-white mb-2">Kirim Lamaran</h2>
+            <p id="apply-job-title" class="text-sm text-emerald-400 mb-4 font-medium"></p>
+            
+            <form onsubmit="submitApplication(event)" class="space-y-4">
+                <input type="hidden" id="apply-job-id">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Pesan Pengantar / Link Portofolio</label>
+                    <textarea id="apply-message" rows="4" required placeholder="Tuliskan pengalaman Anda atau sertakan link planetminecraft..." class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/20 transition">
+                    Kirim Lamaran Sekarang
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-mine-card border border-emerald-500/30 text-white px-6 py-4 rounded-xl shadow-2xl transform translate-y-32 opacity-0 transition-all duration-300 z-50 flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center"><i class="fa-solid fa-check"></i></div>
+        <div>
+            <h4 id="toast-title" class="text-sm font-bold">Berhasil</h4>
+            <p id="toast-desc" class="text-xs text-slate-400">Aksi berhasil dilakukan.</p>
+        </div>
+    </div>
+
+    <!-- SCRIPT UTAMA KONEKSI SUPABASE -->
+    <script>
+        // --- KONFIGURASI SUPABASE ---
+        // Ganti dengan URL dan Anon Key dari Project Settings -> API Supabase Anda
+        const SUPABASE_URL = 'sb_publishable_5fJ3RNKxo5YGRrwBGH9uYA_3Oym1e3z';
+        const SUPABASE_ANON_KEY = 'sb_secret__ySfCYUiofUDG86irxa0WA_yVu4X9LV';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let userProfile = null;
+        let allJobs = [];
+        let isRegisterMode = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkUserSession();
+            await fetchJobs();
+        });
+
+        // --- MANAJEMEN TAB ---
+        function switchTab(tabName) {
+            ['jobs', 'ai', 'post'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                if(navBtn) {
+                    navBtn.classList.remove('text-emerald-400', 'bg-emerald-500/10');
+                    navBtn.classList.add('text-slate-300');
+                }
+            });
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            if(activeBtn) {
+                activeBtn.classList.add('text-emerald-400', 'bg-emerald-500/10');
+                activeBtn.classList.remove('text-slate-300');
+            }
+        }
+
+        // --- SESSION & AUTH ---
+        async function checkUserSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await fetchUserProfile(currentUser.id);
+                updateNavbarAuthUI();
+            }
+        }
+
+        async function fetchUserProfile(userId) {
+            const { data } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+            if (data) {
+                userProfile = data;
+                if (userProfile.role === 'client') {
+                    document.querySelectorAll('.client-only').forEach(el => el.classList.remove('hidden'));
+                }
+            }
+        }
+
+        function updateNavbarAuthUI() {
+            const nav = document.getElementById('auth-container-nav');
+            if (userProfile) {
+                nav.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 capitalize">${userProfile.role}: ${userProfile.username}</span>
+                        <button onclick="handleLogout()" class="px-3 py-2 text-sm text-slate-400 hover:text-white transition"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    </div>
+                `;
+            }
+        }
+
+        function openAuthModal(mode) {
+            isRegisterMode = (mode === 'register');
+            document.getElementById('auth-modal-title').innerText = isRegisterMode ? 'Daftar Akun Baru' : 'Masuk ke Akun';
+            document.getElementById('auth-submit-btn').innerText = isRegisterMode ? 'Daftar' : 'Masuk';
+            document.getElementById('register-fields').classList.toggle('hidden', !isRegisterMode);
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            openAuthModal(isRegisterMode ? 'register' : 'login');
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            if (isRegisterMode) {
+                const username = document.getElementById('auth-username').value;
+                const role = document.getElementById('auth-role').value;
+                const { data, error } = await supabaseClient.auth.signUp({
+                    email, password,
+                    options: { data: { username, role } }
+                });
+                if (error) { alert(error.message); return; }
+                showToast('Registrasi Berhasil', 'Silakan cek email atau masuk dengan akun Anda.');
+            } else {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) { alert(error.message); return; }
+                showToast('Berhasil Masuk', 'Selamat datang kembali!');
+                window.location.reload();
+            }
+            closeAuthModal();
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        }
+
+        // --- AMBIL & TAMPILKAN LOWONGAN ---
+        async function fetchJobs() {
+            const { data, error } = await supabaseClient
+                .from('jobs')
+                .select('*, profiles(username)')
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                allJobs = data;
+                renderJobs(allJobs);
+            } else {
+                document.getElementById('job-list-container').innerHTML = `<p class="col-span-full text-center text-red-400">Gagal memuat lowongan. Pastikan konfigurasi Supabase benar.</p>`;
+            }
+        }
+
+        function renderJobs(jobs) {
+            const container = document.getElementById('job-list-container');
+            if (jobs.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-slate-400 py-12">Belum ada lowongan tersedia.</p>`;
+                return;
+            }
+
+            container.innerHTML = jobs.map(job => `
+                <div class="bg-mine-card border border-mine-border rounded-2xl p-6 flex flex-col justify-between hover:border-emerald-500/50 transition group">
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between">
+                            <span class="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-wider border border-emerald-500/20">${job.style}</span>
+                            <span class="text-xs text-slate-400"><i class="fa-solid fa-server mr-1"></i>${job.server_type}</span>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition">${job.title}</h3>
+                            <p class="text-xs text-slate-400 mt-1">Oleh: <span class="text-slate-200">${job.profiles?.username || 'Client'}</span></p>
+                        </div>
+                        <p class="text-sm text-slate-300 line-clamp-3">${job.description}</p>
+                    </div>
+                    <div class="pt-6 mt-6 border-t border-mine-border flex items-center justify-between">
+                        <div>
+                            <span class="block text-xs text-slate-400">Bayaran / Kompensasi</span>
+                            <span class="text-sm font-bold text-emerald-400">${job.budget}</span>
+                        </div>
+                        <button onclick="openApplyModal('${job.id}', '${job.title}')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition shadow-md shadow-emerald-500/20">
+                            Lamar Proyek
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterJobs() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const style = document.getElementById('filter-style').value;
+
+            const filtered = allJobs.filter(job => {
+                const matchQuery = job.title.toLowerCase().includes(query) || job.server_type.toLowerCase().includes(query);
+                const matchStyle = style === '' || job.style === style;
+                return matchQuery && matchStyle;
+            });
+            renderJobs(filtered);
+        }
+
+        // --- POST JOB (CLIENT) ---
+        async function handlePostJob(e) {
+            e.preventDefault();
+            if (!userProfile || userProfile.role !== 'client') {
+                alert('Hanya akun Client yang dapat memasang lowongan.');
+                return;
+            }
+
+            const title = document.getElementById('job-title').value;
+            const server_type = document.getElementById('job-server').value;
+            const style = document.getElementById('job-style').value;
+            const budget = document.getElementById('job-budget').value;
+            const description = document.getElementById('job-desc').value;
+
+            const { error } = await supabaseClient.from('jobs').insert([{
+                client_id: currentUser.id,
+                title, server_type, style, budget, description
+            }]);
+
+            if (error) {
+                alert('Gagal memposting lowongan: ' + error.message);
+                return;
+            }
+
+            showToast('Lowongan Dipublikasikan', 'Proyek Anda sekarang tampil di beranda.');
+            document.getElementById('post-job-form').reset();
+            switchTab('jobs');
+            fetchJobs();
+        }
+
+        // --- APPLY JOB ---
+        function openApplyModal(jobId, jobTitle) {
+            if (!currentUser) {
+                openAuthModal('login');
+                return;
+            }
+            if (userProfile && userProfile.role === 'client') {
+                alert('Akun dengan peran Client tidak dapat melamar pekerjaan builder.');
+                return;
+            }
+            document.getElementById('apply-job-id').value = jobId;
+            document.getElementById('apply-job-title').innerText = jobTitle;
+            document.getElementById('apply-modal').classList.remove('hidden');
+        }
+
+        function closeApplyModal() {
+            document.getElementById('apply-modal').classList.add('hidden');
+        }
+
+        async function submitApplication(e) {
+            e.preventDefault();
+            const job_id = document.getElementById('apply-job-id').value;
+            const message = document.getElementById('apply-message').value;
+
+            const { error } = await supabaseClient.from('applications').insert([{
+                job_id,
+                builder_id: currentUser.id,
+                message
+            }]);
+
+            if (error) {
+                alert('Gagal mengirim lamaran (Mungkin Anda sudah pernah melamar lowongan ini).');
+                return;
+            }
+
+            closeApplyModal();
+            showToast('Lamaran Terkirim', 'Klien akan segera meninjau portofolio Anda.');
+        }
+
+        // --- AI MATCHER SIMULATION ---
+        function runAIMatcher() {
+            const style = document.getElementById('ai-style').value;
+            const level = document.getElementById('ai-level').value;
+            const budget = document.getElementById('ai-budget').value;
+
+            const matched = allJobs.filter(job => job.style === style).slice(0, 3);
+            const container = document.getElementById('ai-result-content');
+            document.getElementById('ai-result-container').classList.remove('hidden');
+
+            if (matched.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400">Tidak ditemukan lowongan yang cocok persis dengan gaya ${style} saat ini. Coba pilih gaya lain!</p>`;
+                return;
+            }
+
+            container.innerHTML = matched.map(job => `
+                <div class="bg-mine-dark border border-mine-border p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">Kecocokan AI: 95%</span>
+                        <h4 class="text-base font-bold text-white mt-1">${job.title}</h4>
+                        <p class="text-xs text-slate-400">Server: ${job.server_type} • Bayaran: ${job.budget}</p>
+                    </div>
+                    <button onclick="openApplyModal('${job.id}', '${job.title}')" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">Lamar</button>
+                </div>
+            `).join('');
+        }
+
+        // --- TOAST HELPER ---
+        function showToast(title, desc) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-desc').innerText = desc;
+            toast.classList.remove('translate-y-32', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-32', 'opacity-0');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
