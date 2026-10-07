@@ -35,7 +35,7 @@
 <body class="min-h-screen flex flex-col">
 
     <!-- NAVBAR -->
-    <header class="border-b border-mine-border bg-mine-dark/80 backdrop-blur-md sticky top-0 z-50">
+    <header class="border-b border-mine-border bg-mine-dark/85 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('jobs')">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
@@ -54,7 +54,6 @@
             </nav>
 
             <div class="flex items-center space-x-3" id="auth-container-nav">
-                <!-- Status Auth Dinamis -->
                 <button onclick="openAuthModal('login')" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white transition">Masuk</button>
                 <button onclick="openAuthModal('register')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 transition">Daftar</button>
             </div>
@@ -89,7 +88,6 @@
 
             <!-- Daftar Lowongan -->
             <div id="job-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Lowongan akan dimuat secara dinamis via JS -->
                 <div class="col-span-full text-center py-12 text-slate-400">
                     <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Memuat lowongan dari database...</p>
@@ -105,7 +103,7 @@
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                     </div>
                     <h1 class="text-2xl font-bold text-white">AI Job Matcher</h1>
-                    <p class="text-sm text-slate-400">Isi profil keahlian Anda, biarkan AI mencocokkan lowongan paling sesuai dengan gaya builder Anda.</p>
+                    <p class="text-sm text-slate-400">Isi preferensi keahlian Anda, biarkan AI mencocokkan lowongan paling sesuai.</p>
                 </div>
 
                 <div class="space-y-4">
@@ -191,7 +189,7 @@
         </section>
     </main>
 
-    <!-- MODAL AUTH (LOGIN / REGISTER) -->
+    <!-- MODAL AUTH -->
     <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-mine-card border border-mine-border w-full max-w-md p-8 rounded-2xl shadow-2xl relative">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -228,7 +226,7 @@
         </div>
     </div>
 
-    <!-- MODAL APPLY JOB -->
+    <!-- MODAL APPLY -->
     <div id="apply-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-mine-card border border-mine-border w-full max-w-md p-8 rounded-2xl shadow-2xl relative">
             <button onclick="closeApplyModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -239,7 +237,7 @@
                 <input type="hidden" id="apply-job-id">
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-1">Pesan Pengantar / Link Portofolio</label>
-                    <textarea id="apply-message" rows="4" required placeholder="Tuliskan pengalaman Anda atau sertakan link planetminecraft..." class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
+                    <textarea id="apply-message" rows="4" required placeholder="Tuliskan pengalaman Anda..." class="w-full bg-mine-dark border border-mine-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500"></textarea>
                 </div>
                 <button type="submit" class="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/20 transition">
                     Kirim Lamaran Sekarang
@@ -257,12 +255,11 @@
         </div>
     </div>
 
-    <!-- SCRIPT UTAMA KONEKSI SUPABASE -->
+    <!-- SCRIPT UTAMA -->
     <script>
-        // --- KONFIGURASI SUPABASE ---
-        // Ganti dengan URL dan Anon Key dari Project Settings -> API Supabase Anda
-        const SUPABASE_URL = 'sb_publishable_5fJ3RNKxo5YGRrwBGH9uYA_3Oym1e3z';
-        const SUPABASE_ANON_KEY = 'sb_secret__ySfCYUiofUDG86irxa0WA_yVu4X9LV';
+        // --- KONFIGURASI AMAN (Gunakan ANON PUBLIC Key Supabase) ---
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -276,7 +273,6 @@
             await fetchJobs();
         });
 
-        // --- MANAJEMEN TAB ---
         function switchTab(tabName) {
             ['jobs', 'ai', 'post'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -294,7 +290,6 @@
             }
         }
 
-        // --- SESSION & AUTH ---
         async function checkUserSession() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -351,14 +346,14 @@
             if (isRegisterMode) {
                 const username = document.getElementById('auth-username').value;
                 const role = document.getElementById('auth-role').value;
-                const { data, error } = await supabaseClient.auth.signUp({
+                const { error } = await supabaseClient.auth.signUp({
                     email, password,
                     options: { data: { username, role } }
                 });
                 if (error) { alert(error.message); return; }
-                showToast('Registrasi Berhasil', 'Silakan cek email atau masuk dengan akun Anda.');
+                showToast('Registrasi Berhasil', 'Silakan masuk dengan akun Anda.');
             } else {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) { alert(error.message); return; }
                 showToast('Berhasil Masuk', 'Selamat datang kembali!');
                 window.location.reload();
@@ -371,7 +366,6 @@
             window.location.reload();
         }
 
-        // --- AMBIL & TAMPILKAN LOWONGAN ---
         async function fetchJobs() {
             const { data, error } = await supabaseClient
                 .from('jobs')
@@ -382,7 +376,7 @@
                 allJobs = data;
                 renderJobs(allJobs);
             } else {
-                document.getElementById('job-list-container').innerHTML = `<p class="col-span-full text-center text-red-400">Gagal memuat lowongan. Pastikan konfigurasi Supabase benar.</p>`;
+                document.getElementById('job-list-container').innerHTML = `<p class="col-span-full text-center text-red-400">Gagal memuat lowongan. Periksa konfigurasi Supabase.</p>`;
             }
         }
 
@@ -431,7 +425,6 @@
             renderJobs(filtered);
         }
 
-        // --- POST JOB (CLIENT) ---
         async function handlePostJob(e) {
             e.preventDefault();
             if (!userProfile || userProfile.role !== 'client') {
@@ -455,20 +448,19 @@
                 return;
             }
 
-            showToast('Lowongan Dipublikasikan', 'Proyek Anda sekarang tampil di beranda.');
+            showToast('Lowongan Dipublikasikan', 'Proyek Anda tampil di beranda.');
             document.getElementById('post-job-form').reset();
             switchTab('jobs');
             fetchJobs();
         }
 
-        // --- APPLY JOB ---
         function openApplyModal(jobId, jobTitle) {
             if (!currentUser) {
                 openAuthModal('login');
                 return;
             }
             if (userProfile && userProfile.role === 'client') {
-                alert('Akun dengan peran Client tidak dapat melamar pekerjaan builder.');
+                alert('Akun Client tidak dapat melamar pekerjaan.');
                 return;
             }
             document.getElementById('apply-job-id').value = jobId;
@@ -497,21 +489,17 @@
             }
 
             closeApplyModal();
-            showToast('Lamaran Terkirim', 'Klien akan segera meninjau portofolio Anda.');
+            showToast('Lamaran Terkirim', 'Klien akan segera meninjau lamaran Anda.');
         }
 
-        // --- AI MATCHER SIMULATION ---
         function runAIMatcher() {
             const style = document.getElementById('ai-style').value;
-            const level = document.getElementById('ai-level').value;
-            const budget = document.getElementById('ai-budget').value;
-
             const matched = allJobs.filter(job => job.style === style).slice(0, 3);
             const container = document.getElementById('ai-result-content');
             document.getElementById('ai-result-container').classList.remove('hidden');
 
             if (matched.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-400">Tidak ditemukan lowongan yang cocok persis dengan gaya ${style} saat ini. Coba pilih gaya lain!</p>`;
+                container.innerHTML = `<p class="text-sm text-slate-400">Tidak ditemukan lowongan dengan gaya ${style} saat ini.</p>`;
                 return;
             }
 
@@ -527,7 +515,6 @@
             `).join('');
         }
 
-        // --- TOAST HELPER ---
         function showToast(title, desc) {
             const toast = document.getElementById('toast');
             document.getElementById('toast-title').innerText = title;
